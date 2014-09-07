@@ -10,8 +10,8 @@ V4 = V3 * V3			% 2 ^ 16
 V5 = V4 * V4			% 2 ^ 32
 V6 = V5 * V5			% 2 ^ 64
 V = V6 * V5 * V2		% 2 ^ (64 + 32 + 4) = 2 ^ 100
-{Browse V}
-% {Browse {Pow 2 100}}		
+{Browse V5}
+% {Browse {Pow 2 32}}		
 
 %
 % 1 (b)
@@ -33,7 +33,7 @@ fun {Comb N K}
    {PartFact N (N - K + 1)} div {PartFact K 1}
 end
 {Browse {Comb 10 3}}
-% {Browse (10 * 9 * 8) div (3 * 2 * 1)
+% {Browse (10 * 9 * 8) div (3 * 2 * 1)}
 
 %
 % 2 (b)
@@ -46,7 +46,7 @@ fun {CombFast N K}
       {PartFact N (K + 1)} div {PartFact (N - K) 1}
    end
 end
-{Browse {CombFast 10 3}}
+{Browse {CombFast 10 7}}
 
 %
 % 3
@@ -112,7 +112,7 @@ fun lazy {SumList L}
       X|{AddList L1 {SumList L}}
    else nil end
 end
-{Browse {SumList {Ints 0}}.2.2.2.1}
+{Browse {List.take {SumList {Ints 0}} 10}}
 
 %
 % 6 (a) (b)
@@ -238,7 +238,7 @@ fun {ShiftLeft L}
    else [0] end
 end
 fun {ShiftRight L} 0|L end
-{Browse {FasterPascal 10}}
+{Browse {FasterPascal 100}}
 
 %
 % 9 (c)
@@ -336,7 +336,6 @@ S = {NewStore} in
 {Put S 2 100}
 {Browse {Size S}}
 
-
 %
 % 10 (a)(b)
 %
@@ -344,12 +343,10 @@ declare
 C = {NewCell 0}
 thread I in
    I = @C
-   {Delay 10}
    C := I+1
 end
 thread J in
    J = @C
-   {Delay 10}
    C := J+1
 end
 {Delay 1000}
@@ -371,7 +368,7 @@ end
 thread
    lock L then J in
       J = @C
-      {Delay 200}
+      {Delay -1}
       C := J + 1
    end
 end
