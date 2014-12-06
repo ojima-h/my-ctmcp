@@ -50,8 +50,8 @@ local MulByN in
    end
 end
 
-%MulByN には `(proc {$ X ?Y} <body> end, {N -> 3})` が束縛される。
-%`<body>` 実行時に `N -> 3` が存在しないと、`N * X` を評価することができずエラーになる。
+% MulByN には `(proc {$ X ?Y} <body> end, {N -> 3})` が束縛される。
+% `<body>` 実行時に `N -> 3` が存在しないと、`N * X` を評価することができずエラーになる。
 
 % 3
 % ====
@@ -63,12 +63,18 @@ fun {F X}
    end
 end
 
-declare X Y
-X = {F 10}
-Y = {F -1}
-{Browse X}
-{Browse Y}
+{Browse 10}
 
+declare X Y
+try
+   X = {F 10}
+   Y = {F -1}
+   {Browse X}
+   {Browse Y}
+catch
+   X then {Browse X}
+end
+   
 % 例外が発生しない...
 % 仕様が変わったのかも
 %  
@@ -109,6 +115,7 @@ end
 {Test [a b c]}  % => case(1)
 {Test [c a d]}  % => case(4)
 {Test a|a}      % => case(3) -> 1
+{Test '|'(a b c)} % -> 6
 
 % 6.
 % ====
