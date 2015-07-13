@@ -1,12 +1,60 @@
 %
+% 6
+%
+declare
+fun {Generate N Limit}
+   if N<Limit then
+      % {Delay 1}
+      N|{Generate N+1 Limit}
+   else nil end
+end
+fun {Sum Xs A}
+   case Xs
+   of X|Xr then {Sum Xr A+X}
+   [] nil then A
+   end
+end
+fun {Skip Xs}
+   if {IsDet Xs} then
+      case Xs of _|Xr then {Skip Xr} [] nil then nil end
+   else Xs end
+end
+
+fun {Sum2 Xs A}
+   if {IsDet Xs} then
+      case Xs
+      of X|Xr then {Sum Xr A+X}
+      [] nil then A
+      end
+   else
+      A
+   end
+end
+
+local Xs Ys S1 S2 in
+   thread Xs={Generate 0 150000} end
+   thread S1={Sum Xs 0} end
+   {Browse S1}
+
+   thread Ys={Generate 0 150000} end
+   thread S2={Sum {Skip Ys} 0} end
+   {Browse S2}
+end
+      
+
+%
 % 10
 %
 local
-   fun lazy {Three} {Delay 3000} 3 end
+   fun lazy {Three} {Delay 1000} 3 end
+   X = {Three}
 in
-   {Browse {Three}+0}
-   {Browse {Three}+0}
-   {Browse {Three}+0}
+   % {Browse {Three}+0}
+   % {Browse {Three}+0}
+   % {Browse {Three}+0}
+   {Browse X+0}
+   {Browse X+0}
+   {Browse X+0}
 end
 
 %=>
@@ -34,8 +82,8 @@ X={MakeX}
 Y={MakeY}
 Z={MakeZ}
 
-{Browse (X+Y)+Z}
-%{Browse thread X+Y end + Z}
+{Browse (thread X end + thread Y end) + thread Z end}
+{Browse thread X+Y end + Z}
 %{Browse Z + thread X+Y end}
 
 
@@ -82,8 +130,8 @@ fun {Sum Xs A Limit}
 end
 
 local Xs S in
-   Xs={Generate 0}
-   S={Sum Xs 0 15}
+   thread Xs={Generate 0} end
+   thread S={Sum Xs 0 15} end
    {Browse Xs}
    {Browse S}
 end
@@ -106,24 +154,17 @@ fun lazy {Reverse2 S}
    end
 in {Rev S nil} end
 
-fun {Generate N Limit}
-   if Limit>0 then
-      {Delay 1000}
-      N|{Generate N+1 Limit-1}
-   else nil end      
-end
+% declare
+% R={Reverse1 [a b c]}
+% {Browse R.1}
 
-local X R1 Y R2 in
-   {Browse X}
-   {Browse R1}
-   X={Generate 0 10}
-   R1={Reverse X}
-   
-   {Browse Y}
-   {Browse R2}
-   Y={Generate 0 10}
-   R2={Reverse Y}
-end
+R1={Reverse1 [a b c]}
+{Browse R1}
+
+R2={Reverse2 [a b c]}
+{Browse R2}
+
+{Delay 2000} {Browse R2.1}
 
 
 %
@@ -136,12 +177,20 @@ fun lazy {Append As Bs}
    end
 end
 
+fun {Append As Bs}
+   case As
+   of nil then Bs
+   [] A|Ar then X|{ByNeed fun {$} {Append Ar Bs} end}
+   end
+end
+
 %
 % 16
 %
 local X in
    thread X={ByNeed fun {$} {Delay 3000} {Browse x} 3 end} end
    {Browse thread X+2 end}
+   % {Browse X+2}
    {Browse done}
 end
 
@@ -184,4 +233,33 @@ end
 
 {Browse H2}
 H2=1|{Hamming [2 3 5 7] H2}
-{Touch 20 H2}
+{Touch 40 H2}
+
+
+%
+% 18
+%
+declare
+proc {TryFinally S1 S2}
+   B Y in
+   try {S1} B=false catch X then B=true Y=X end
+   {S2}
+   if B then raise Y end end
+end
+
+local U=1 V=2 in
+   {TryFinally
+    proc {$}
+       thread
+	  {TryFinally
+	   proc {$} U=V end
+	   proc {$} {Browse bing} end}
+       end
+       % {Delay 1000} {Browse bang}
+    end
+    proc {$} {Browse bong} end}
+end
+
+%  U=V -> exception! -> bing
+% ^    ^            ^       ^
+
