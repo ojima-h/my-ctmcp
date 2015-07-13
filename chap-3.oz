@@ -3,7 +3,7 @@
 declare Solve
 fun {Solve F A B GoodEnough}
    fun {SolveIter X Y}
-      Z = (X + Y) / 2.
+      Z = (X + Y) / 2. % Improve
       V = {F Z}
    in
       if V == 0. then
@@ -33,7 +33,7 @@ end
 
 declare F
 fun {F X} {Pow X 2.} - 1. end
-{Browse {Solve F ~2 0 0.001}}
+{Browse {Solve F ~2. 0. 0.001}}
 {Browse {Solve F 0. 1.5 0.01}}
 
 % 4
@@ -137,3 +137,9 @@ end
 % 9
 
 % 上に示した Append がデータフロー変数を使わない反復的Appendではないのか？
+
+
+
+fun {Merge Xs Ys}
+   case Xs # Ys then Ys
+      
