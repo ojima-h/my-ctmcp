@@ -22,16 +22,18 @@ C={New Counter init(1)}
 %%%
 
 declare Wrap Unwrap
-local
-   Key={NewName}
-in
-   fun {Wrap X}
-      {Chunk.new w(Key:X)}
-   end
-   fun {Unwrap W}
-      try W.Key catch _ then raise error(unwrap(W)) end end
-   end
-end
+% local
+%    Key={NewName}
+% in
+%    fun {Wrap X}
+%       {Chunk.new w(Key:X)}
+%    end
+%    fun {Unwrap W}
+%       try W.Key catch _ then raise error(unwrap(W)) end end
+%    end
+% end
+fun {Wrap X} X end
+fun {Unwrap X} X end
 
 declare Counter
 local
@@ -56,6 +58,7 @@ in
    Counter = {Wrap c(methods:MethodTable attrs: Attrs)}
 end
 
+declare
 fun {New WClass InitialMethod}
    State Obj Class={Unwrap WClass}
 in
@@ -77,7 +80,26 @@ C={New Counter init(1)}
 
 declare
 fun {Union S1 S2}
+   R1={MakeRecord s S1}
+   R2={MakeRecord s S2}
+in
+   {Arity {Adjoin R1 R2}}
 end
+
+declare
+fun {Minus S1 S2}
+   R={MakeRecord s S1}
+in
+   {Arity {Record.subtractList R S2}}
+end
+
+declare
+fun {Inter S1 S2}
+   {Minus {Union S1 S2}
+    {Union {Minus S1 S2} {Minus S2 S1}}}
+end
+
+{Browse {Inter [a b c] [c b f]}}
 
 declare
 fun {From C1 C2 C3}
@@ -87,20 +109,17 @@ fun {From C1 C2 C3}
    MA1={Arity M1}
    MA2={Arity M2}
    MA3={Arity M3}
-   ConfMeth={FS.diff {FS.intersect MA2 MA3} MA1}
-   ConfAttr={FS.diff {FS.intersect A2 A3} A1}
+   ConfMeth={Minus {Inter MA2 MA3} MA1}
+   ConfAttr={Minus {Inter A2 A3} A1}
 in
-   {Browse hoge}
    if ConfMeth\=nil then
       raise illegalInheritance(methConf:ConfMeth) end
    end
    if ConfAttr\=nil then
       raise illegalInheritance(attrConf:ConfAttr) end
    end
-   {Browse {Adjoin {Adjoin M2 M3} M1}}
-   {Browse {FS.union {FS.union A2 A3} A1}}
    {Wrap c(methods:{Adjoin {Adjoin M2 M3} M1}
-	   attrs:{FS.union {FS.union A2 A3} A1})}
+	   attrs:{Union {Union A2 A3} A1})}
 end
 
 declare ReverseCounter
@@ -114,7 +133,7 @@ local
    end
    proc {Dec M S Self}
       X
-      inc(Value)=M
+      dec(Value)=M
    in
       X=@(S.val) (S.val):=X-Value
    end
@@ -128,7 +147,7 @@ end
 
 declare DeCounter
 local
-   Attrs = nil
+   Attrs = [val]
    MethodTable = m(browse:MyBrowse init:Init)
    proc {Init M S Self}
       init(Value)=M
@@ -141,8 +160,8 @@ local
    end
 in
    DeCounter = {From
-		Counter ReverseCounter
-		{Wrap c(methods:MethodTable attrs: Attrs)}}
+		{Wrap c(methods:MethodTable attrs: Attrs)}
+		Counter ReverseCounter}
 end
 
 declare
@@ -150,5 +169,3 @@ DC = {New DeCounter init(0)}
 {DC inc(10)}
 {DC dec(5)}
 {DC browse}
-
-{Browse FS}
