@@ -143,49 +143,127 @@ end
 %
 declare
 fun {NewQueue}
-   X C={NewCell 0 X X}
+   X C={NewCell q(0 X X)}
+   L={NewLock}
    proc {Insert X}
-      N S E1 N1 in
-      {Exchange C q(N S X|E1) q(N1 S E1)}
-      N1=N+1
+      N S E1 in
+      lock L then
+	 q(N S X|E1)=@C
+	 C:=q(N+1 S E1)
+      end
    end
    fun {Delete}
-      N S1 E N1 X in
-      {Exchange C q(N X|S1 E) q(N1 S1 E)}
-      N1=N-1
+      N S1 E in
+      lock L then
+	 q(N X|S1 E)=@C
+	 C:=q(N-1 S1 E)
+      end
       X
    end
+   fun {Size}
+      lock L then @C.1 end
+   end
+   fun {DeleteAll}
+      lock L then
+	 X q(_ S E)=@C in
+	 C:=q(0 X X)
+	 E=nil S
+      end
+   end
+   fun {DeleteNonBlock}
+      lock L then
+	 if {Size}>0 then [{Delete}] else nil end
+      end
+   end
 in
-   queue(insert:Insert delete:Delete)
+   queue(insert:Insert delete:Delete size:Size
+	deleteAll:DeleteAll deleteNonBlock:DeleteNonBlock)
 end
-		    
+fun {NewGRLock}
+   Token1={NewCell unit}
+   Token2={NewCell unit}
+   CurThr={NewCell unit}
+
+   proc {GetLock}
+      if {Thread.this}\=@CurThr then Old New in
+	 {Exchange Token1 Old New}
+	 {Wait Old}
+	 Token2:=New
+	 CurThr:={Thread.this}
+      end
+   end
+   proc {ReleaseLock}
+      CurThr:=unit
+      unit=@Token2
+   end
+in
+   'lock'(get:GetLock release:ReleaseLock)
+end
+fun {NewMonitor}
+   Q={NewQueue}
+   L={NewGRLock}
+
+   proc {LockM P}
+      {L.get} try {P} finally {L.release} end
+   end
+
+   proc {WaitM}
+      X in
+      {Q.insert X} {L.release} {Wait X} {L.get}
+   end
+
+   proc {NotifyM}
+      U={Q.deleteNonBlock} in
+      case U of [X] then X=unit else skip end
+   end
+
+   proc {NotifyAllM}
+      L={Q.deleteAll} in
+      for X in L do X=unit end
+   end
+in
+   monitor('lock':LockM wait:WaitM notify:NotifyM
+	   notifyAll:NotifyAllM)
+end
+
+declare
 fun {NewMVar}
    C={NewCell _}
-   Q1={NewQueue}
-   Q2={NewQueue}
+   M={NewMonitor}
+   E={NewCell true}
    proc {Get X}
-      L in
-      {Q1.insert L}
-      {Wait L}
-      {Exchange C X _}
-      {Q2.delete}=unit
+      {M.'lock' proc {$}
+		   if @E then {M.wait} {Get X}
+		   else
+		      X=@C
+		      E:=true
+		      {M.notifyAll}
+		   end
+		end}
    end
    proc {Put X}
-      L in
-      {Q2.insert L}
-      {Wait L}
-      C:=X
-      {Q1.delete}=unit
+      {M.'lock' proc {$}
+		   if {Not @E} then {M.wait} {Put X}
+		   else
+		      C:=X
+		      E:=true
+		      {M.notifyAll}
+		   end
+		end}
    end
 in
    mvar(get:Get put:Put)
 end
 
 declare
-try
 M={NewMVar}
+
+try
 thread {Browse {M.get}} end
 thread {Browse {M.get}} end
 thread {Browse {M.get}} end
 {M.put 1}
+{Browse {M.get}}
 catch E then {Browse E} end
+
+{Browse 1}
